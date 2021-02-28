@@ -49,7 +49,7 @@ final case class FixedCapacityContainer[Key, Value](maxSize: Int) {
       val value = getPendingValue(key, valueFactory)
 
       val fifoNode = doubleLinkedList.enqueue(KeyValue(key, value))
-      val priorityNode = priority.map(priority => addPriorityNode(key, value, priority))
+      val priorityNode = priority.foreach(priority => addPriorityNode(key, value, priority))
 
       valuesByKey.put(key, ValueWithNodes(fifoNode.value, fifoNode, priorityNode))
 

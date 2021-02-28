@@ -32,7 +32,7 @@ final class TaskManagerActor
 
   type CPUActorType = ActorRef[CPUActor.Command]
 
-  override def onMessage(msg: Command): Behavior[Command] =
+  override def onMessage(msg: Command): Behavior[Command] = {
     msg match {
       case AddJob(job, strategy, replyTo) =>
         val onCreate: PID => CPUActorType = _ => {
@@ -53,7 +53,6 @@ final class TaskManagerActor
           case Left(_) =>
             replyTo ! Left(Busy)
         }
-        this
       case KillJob(pid) =>
         processPool.jobForId(pid) match {
           case Some(cpuRef) =>
@@ -63,17 +62,15 @@ final class TaskManagerActor
           case None =>
             context.log.info(s"no job with pid: $pid")
         }
-        this
       case KillJobsByPriority(priority) =>
         processPool.jobsForPriority(priority).foreach(_ ! CPUActor.KillJob)
         processPool.removeJobForPriority(priority)
-        this
       case KillAll  =>
         processPool.allJobs.foreach(_ ! CPUActor.KillJob)
         processPool.removeAll()
-        this
       case OnCompleteJob(pid) =>
         processPool.removeJob(pid)
-        this
     }
+    this
+  }
 }
