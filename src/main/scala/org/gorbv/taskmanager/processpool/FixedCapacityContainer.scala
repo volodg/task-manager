@@ -41,8 +41,7 @@ final case class FixedCapacityContainer[Key, Value](maxSize: Int) {
     Option.when(hasFreeSpace || tryReleaseSpace(strategy)) {
       val priority = strategy match {
         case PriorityStrategy(_, priority) => Some(priority)
-        case DefaultStrategy() => None
-        case FifoStrategy(_) => None
+        case DefaultStrategy() | FifoStrategy(_) => None
       }
 
       val key = keyFactory()
