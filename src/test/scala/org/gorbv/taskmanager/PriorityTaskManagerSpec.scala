@@ -24,11 +24,11 @@ final class PriorityTaskManagerSpec extends Specification {
         secondJobAddedSemaphore.acquire()
         job0Finished = true
         secondJobFinishedSemaphore.release()
-      }, PriorityTaskStrategy(1))
+      }, PriorityTaskStrategy(MediumPriority))
 
       val result1 = taskManager.addJob(() => {
         sys.error("should not be started")
-      }, PriorityTaskStrategy(0))
+      }, PriorityTaskStrategy(LowPriority))
 
       secondJobAddedSemaphore.release()
 
@@ -52,12 +52,12 @@ final class PriorityTaskManagerSpec extends Specification {
       val result0 = taskManager.addJob(() => {
         Thread.sleep(Long.MaxValue)
         job0Finished = true
-      }, PriorityTaskStrategy(0))
+      }, PriorityTaskStrategy(LowPriority))
 
       val result1 = taskManager.addJob(() => {
         job1Finished = true
         secondJobFinishedSemaphore.release()
-      }, PriorityTaskStrategy(1))
+      }, PriorityTaskStrategy(MediumPriority))
 
       result0 must beRight(0)
       result1 must beRight(1)
@@ -81,7 +81,7 @@ final class PriorityTaskManagerSpec extends Specification {
       val result0 = taskManager.addJob(() => {
         job0Finished = true
         firstJobCompletionSemaphore.release()
-      }, PriorityTaskStrategy(0))
+      }, PriorityTaskStrategy(LowPriority))
 
       firstJobCompletionSemaphore.acquire()
       taskManager.killAllJobs()
@@ -89,7 +89,7 @@ final class PriorityTaskManagerSpec extends Specification {
       val result1 = taskManager.addJob(() => {
         job1Finished = true
         secondJobCompletionSemaphore.release()
-      }, PriorityTaskStrategy(0))
+      }, PriorityTaskStrategy(LowPriority))
 
       secondJobCompletionSemaphore.acquire()
 
@@ -117,14 +117,14 @@ final class PriorityTaskManagerSpec extends Specification {
         firstJobCompletionSemaphore.release()
         Thread.sleep(Long.MaxValue)
         job0Finished = true
-      }, PriorityTaskStrategy(0))
+      }, PriorityTaskStrategy(LowPriority))
 
       val result1 = taskManager.addJob(() => {
         job1Started = true
         secondJobCompletionSemaphore.release()
         Thread.sleep(Long.MaxValue)
         job1Finished = true
-      }, PriorityTaskStrategy(1))
+      }, PriorityTaskStrategy(MediumPriority))
 
       taskManager.killAllJobs()
 
@@ -152,14 +152,14 @@ final class PriorityTaskManagerSpec extends Specification {
       val result0 = taskManager.addJob(() => {
         job0Finished = true
         firstJobCompletionSemaphore.release()
-      }, PriorityTaskStrategy(0))
+      }, PriorityTaskStrategy(LowPriority))
 
       val result1 = taskManager.addJob(() => {
         job1Started = true
         secondJobCompletionSemaphore.release()
         Thread.sleep(Long.MaxValue)
         job1Finished = true
-      }, PriorityTaskStrategy(0))
+      }, PriorityTaskStrategy(LowPriority))
 
       firstJobCompletionSemaphore.acquire()
       secondJobCompletionSemaphore.acquire()
@@ -188,18 +188,18 @@ final class PriorityTaskManagerSpec extends Specification {
       val result0 = taskManager.addJob(() => {
         job0Finished = true
         firstJobCompletionSemaphore.release()
-      }, PriorityTaskStrategy(0))
+      }, PriorityTaskStrategy(LowPriority))
 
       val result1 = taskManager.addJob(() => {
         job1Started = true
         secondJobCompletionSemaphore.release()
         Thread.sleep(Long.MaxValue)
         job1Finished = true
-      }, PriorityTaskStrategy(1))
+      }, PriorityTaskStrategy(MediumPriority))
 
       firstJobCompletionSemaphore.acquire()
       secondJobCompletionSemaphore.acquire()
-      taskManager.killAllForPriority(1)
+      taskManager.killAllForPriority(MediumPriority)
 
       result0 must beRight(0)
       result1 must beRight(1)

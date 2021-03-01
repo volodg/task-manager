@@ -4,7 +4,7 @@ import akka.actor.{Props, typed}
 import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
 import akka.actor.typed.scaladsl.adapter._
 import akka.actor.typed.{ActorRef, Behavior}
-import org.gorbv.taskmanager.{DefaultTaskStrategy, FifoTaskStrategy, PriorityTaskStrategy, TaskStrategy}
+import org.gorbv.taskmanager.{DefaultTaskStrategy, FifoTaskStrategy, HighPriority, LowPriority, MediumPriority, PriorityTaskStrategy, TaskPriority, TaskStrategy}
 import org.gorbv.taskmanager.actors.TaskManagerActor.{AddJob, Command, KillAll, KillJob, KillJobsByPriority, OnCompleteJob}
 import org.gorbv.taskmanager.process.Process.{Priority, _}
 import org.gorbv.taskmanager.processpool.{ContainerStrategy, DefaultStrategy, FifoStrategy, PriorityStrategy, ProcessPool}
@@ -17,7 +17,7 @@ object TaskManagerActor {
   sealed trait Command
   case class AddJob(job: Job, strategy: TaskStrategy, replyTo: typed.ActorRef[Either[CreateProcessError, PID]]) extends Command
   case class KillJob(pid: PID) extends Command
-  case class KillJobsByPriority(priority: Int) extends Command
+  case class KillJobsByPriority(priority: TaskPriority) extends Command
   object KillAll extends Command
 
   //CPU commands
@@ -32,6 +32,13 @@ final class TaskManagerActor
 
   type CPUActorType = ActorRef[CPUActor.Command]
 
+  private def priorityToInt(priority: TaskPriority): Int =
+    priority match {
+      case LowPriority => 0
+      case MediumPriority => 1
+      case HighPriority => 2
+    }
+
   override def onMessage(msg: Command): Behavior[Command] = {
     msg match {
       case AddJob(job, strategy, replyTo) =>
@@ -43,7 +50,7 @@ final class TaskManagerActor
         val jobStrategy: ContainerStrategy[PID, CPUActorType] = strategy match {
           case DefaultTaskStrategy => DefaultStrategy()
           case FifoTaskStrategy => FifoStrategy((_, ex) => onDelete(ex))
-          case PriorityTaskStrategy(priority: Priority) => PriorityStrategy((_, ex) => onDelete(ex), priority)
+          case PriorityTaskStrategy(priority) => PriorityStrategy((_, ex) => onDelete(ex), priorityToInt(priority))
         }
 
         processPool.addJob(jobStrategy, onCreate) match {
@@ -63,8 +70,9 @@ final class TaskManagerActor
             context.log.info(s"no job with pid: $pid")
         }
       case KillJobsByPriority(priority) =>
-        processPool.jobsForPriority(priority).foreach(_ ! CPUActor.KillJob)
-        processPool.removeJobForPriority(priority)
+        val intPriority = priorityToInt(priority)
+        processPool.jobsForPriority(intPriority).foreach(_ ! CPUActor.KillJob)
+        processPool.removeJobForPriority(intPriority)
       case KillAll  =>
         processPool.allJobs.foreach(_ ! CPUActor.KillJob)
         processPool.removeAll()

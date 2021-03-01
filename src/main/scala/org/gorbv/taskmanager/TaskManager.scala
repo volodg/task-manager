@@ -16,7 +16,12 @@ import scala.language.postfixOps
 sealed trait TaskStrategy
 object DefaultTaskStrategy extends TaskStrategy
 object FifoTaskStrategy extends TaskStrategy
-case class PriorityTaskStrategy(priority: Priority) extends TaskStrategy
+case class PriorityTaskStrategy(priority: TaskPriority) extends TaskStrategy
+
+sealed trait TaskPriority
+object LowPriority extends TaskPriority
+object MediumPriority extends TaskPriority
+object HighPriority extends TaskPriority
 
 final case class TaskManager private[taskmanager](cpuCount: Int = cpuCount) {
 
@@ -37,7 +42,7 @@ final case class TaskManager private[taskmanager](cpuCount: Int = cpuCount) {
   def killPid(pid: PID): Unit =
     actorSystem ! TaskManagerActor.KillJob(pid)
 
-  def killAllForPriority(priority: Priority): Unit =
+  def killAllForPriority(priority: TaskPriority): Unit =
     actorSystem ! TaskManagerActor.KillJobsByPriority(priority)
 
   def killAllJobs(): Unit =
