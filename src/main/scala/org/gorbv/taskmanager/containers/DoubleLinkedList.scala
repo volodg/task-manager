@@ -1,9 +1,10 @@
 package org.gorbv.taskmanager.containers
 
-case class Node[Value](
+case class Node[Value] private (
   value: Value,
-  private[containers] var previous: Option[Node[Value]] = None,
-  private[containers] var next: Option[Node[Value]] = None
+  private[containers] var previous: Option[Node[Value]],
+  private[containers] var next: Option[Node[Value]],
+  private[containers] val parent: Option[DoubleLinkedList[Value]]
 )
 
 /*
@@ -30,7 +31,7 @@ case class DoubleLinkedList[Value]() {
   }
 
   def enqueue(value: Value): Node[Value] = {
-    val newNode = Node(value, None, first)
+    val newNode = Node(value, None, first, Some(this))
     first.foreach(_.previous = Some(newNode))
     first = Some(newNode)
 
@@ -42,22 +43,19 @@ case class DoubleLinkedList[Value]() {
     newNode
   }
 
-  def remove(node: Node[Value]): Unit = {
-    val isFirst = first.exists(_.eq(node))
-    val isLast = last.exists(_.eq(node))
-
-    if (isFirst || isLast || (node.previous.isDefined && node.next.isDefined))
+  def remove(node: Node[Value]): Unit =
+    if (node.parent.exists(_.eq(this))) {
       cachedSize -= 1
 
-    if (isFirst)
-      first = node.next
+      if (first.exists(_.eq(node)))
+        first = node.next
 
-    if (isLast)
-      last = node.previous
+      if (last.exists(_.eq(node)))
+        last = node.previous
 
-    node.previous.foreach(previous => previous.next = node.next)
-    node.next.foreach(next => next.previous = node.previous)
-  }
+      node.previous.foreach(previous => previous.next = node.next)
+      node.next.foreach(next => next.previous = node.previous)
+    } else sys.error("Given does not belong to this container")
 
   def allValues: Iterable[Value] = new Iterable[Value] {
     override def iterator: Iterator[Value] = new Iterator[Value] {
